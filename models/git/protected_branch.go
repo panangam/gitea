@@ -39,6 +39,8 @@ type ProtectedBranch struct {
 	EnableWhitelist               bool
 	WhitelistUserIDs              []int64  `xorm:"JSON TEXT"`
 	WhitelistTeamIDs              []int64  `xorm:"JSON TEXT"`
+	DeleteWhitelistUserIDs        []int64  `xorm:"JSON TEXT"`
+	DeleteWhitelistTeamIDs        []int64  `xorm:"JSON TEXT"`
 	EnableMergeWhitelist          bool     `xorm:"NOT NULL DEFAULT false"`
 	WhitelistDeployKeys           bool     `xorm:"NOT NULL DEFAULT false"`
 	MergeWhitelistUserIDs         []int64  `xorm:"JSON TEXT"`
@@ -302,6 +304,9 @@ type WhitelistOptions struct {
 	UserIDs []int64
 	TeamIDs []int64
 
+	DeleteUserIDs []int64
+	DeleteTeamIDs []int64
+
 	MergeUserIDs []int64
 	MergeTeamIDs []int64
 
@@ -324,6 +329,12 @@ func UpdateProtectBranch(ctx context.Context, repo *repo_model.Repository, prote
 	}
 	protectBranch.WhitelistUserIDs = whitelist
 
+	whitelist, err = updateUserWhitelist(ctx, repo, protectBranch.DeleteWhitelistUserIDs, opts.DeleteUserIDs)
+	if err != nil {
+		return err
+	}
+	protectBranch.DeleteWhitelistUserIDs = whitelist
+
 	whitelist, err = updateUserWhitelist(ctx, repo, protectBranch.MergeWhitelistUserIDs, opts.MergeUserIDs)
 	if err != nil {
 		return err
@@ -342,6 +353,12 @@ func UpdateProtectBranch(ctx context.Context, repo *repo_model.Repository, prote
 		return err
 	}
 	protectBranch.WhitelistTeamIDs = whitelist
+
+	whitelist, err = updateTeamWhitelist(ctx, repo, protectBranch.DeleteWhitelistTeamIDs, opts.DeleteTeamIDs)
+	if err != nil {
+		return err
+	}
+	protectBranch.DeleteWhitelistTeamIDs = whitelist
 
 	whitelist, err = updateTeamWhitelist(ctx, repo, protectBranch.MergeWhitelistTeamIDs, opts.MergeTeamIDs)
 	if err != nil {
@@ -461,13 +478,14 @@ func DeleteProtectedBranch(ctx context.Context, repoID, id int64) (err error) {
 
 // RemoveUserIDFromProtectedBranch remove all user ids from protected branch options
 func RemoveUserIDFromProtectedBranch(ctx context.Context, p *ProtectedBranch, userID int64) error {
-	lenIDs, lenApprovalIDs, lenMergeIDs := len(p.WhitelistUserIDs), len(p.ApprovalsWhitelistUserIDs), len(p.MergeWhitelistUserIDs)
+	lenIDs, lenDeleteIDS, lenApprovalIDs, lenMergeIDs := len(p.WhitelistUserIDs), len(p.DeleteWhitelistUserIDs), len(p.ApprovalsWhitelistUserIDs), len(p.MergeWhitelistUserIDs)
 	p.WhitelistUserIDs = util.SliceRemoveAll(p.WhitelistUserIDs, userID)
+	p.DeleteWhitelistUserIDs = util.SliceRemoveAll(p.DeleteWhitelistUserIDs, userID)
 	p.ApprovalsWhitelistUserIDs = util.SliceRemoveAll(p.ApprovalsWhitelistUserIDs, userID)
 	p.MergeWhitelistUserIDs = util.SliceRemoveAll(p.MergeWhitelistUserIDs, userID)
 
-	if lenIDs != len(p.WhitelistUserIDs) || lenApprovalIDs != len(p.ApprovalsWhitelistUserIDs) ||
-		lenMergeIDs != len(p.MergeWhitelistUserIDs) {
+	if lenIDs != len(p.WhitelistUserIDs) || lenDeleteIDS != len(p.DeleteWhitelistUserIDs) ||
+		lenApprovalIDs != len(p.ApprovalsWhitelistUserIDs) || lenMergeIDs != len(p.MergeWhitelistUserIDs) {
 		if _, err := db.GetEngine(ctx).ID(p.ID).Cols(
 			"whitelist_user_i_ds",
 			"merge_whitelist_user_i_ds",

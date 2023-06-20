@@ -116,6 +116,7 @@ func SettingsProtectedBranch(c *context.Context) {
 	}
 	c.Data["Users"] = users
 	c.Data["whitelist_users"] = strings.Join(base.Int64sToStrings(rule.WhitelistUserIDs), ",")
+	c.Data["delete_whitelist_users"] = strings.Join(base.Int64sToStrings(rule.DeleteWhitelistUserIDs), ",")
 	c.Data["merge_whitelist_users"] = strings.Join(base.Int64sToStrings(rule.MergeWhitelistUserIDs), ",")
 	c.Data["approvals_whitelist_users"] = strings.Join(base.Int64sToStrings(rule.ApprovalsWhitelistUserIDs), ",")
 	c.Data["status_check_contexts"] = strings.Join(rule.StatusCheckContexts, "\n")
@@ -130,6 +131,7 @@ func SettingsProtectedBranch(c *context.Context) {
 		}
 		c.Data["Teams"] = teams
 		c.Data["whitelist_teams"] = strings.Join(base.Int64sToStrings(rule.WhitelistTeamIDs), ",")
+		c.Data["delete_whitelist_teams"] = strings.Join(base.Int64sToStrings(rule.DeleteWhitelistTeamIDs), ",")
 		c.Data["merge_whitelist_teams"] = strings.Join(base.Int64sToStrings(rule.MergeWhitelistTeamIDs), ",")
 		c.Data["approvals_whitelist_teams"] = strings.Join(base.Int64sToStrings(rule.ApprovalsWhitelistTeamIDs), ",")
 	}
@@ -188,7 +190,7 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 		}
 	}
 
-	var whitelistUsers, whitelistTeams, mergeWhitelistUsers, mergeWhitelistTeams, approvalsWhitelistUsers, approvalsWhitelistTeams []int64
+	var whitelistUsers, whitelistTeams, deleteWhitelistUsers, deleteWhitelistTeams, mergeWhitelistUsers, mergeWhitelistTeams, approvalsWhitelistUsers, approvalsWhitelistTeams []int64
 	protectBranch.RuleName = f.RuleName
 	if f.RequiredApprovals < 0 {
 		ctx.Flash.Error(ctx.Tr("repo.settings.protected_branch_required_approvals_min"))
@@ -210,6 +212,12 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 		}
 		if strings.TrimSpace(f.WhitelistTeams) != "" {
 			whitelistTeams, _ = base.StringsToInt64s(strings.Split(f.WhitelistTeams, ","))
+		}
+		if strings.TrimSpace(f.DeleteWhitelistUsers) != "" {
+			deleteWhitelistUsers, _ = base.StringsToInt64s(strings.Split(f.DeleteWhitelistUsers, ","))
+		}
+		if strings.TrimSpace(f.DeleteWhitelistTeams) != "" {
+			deleteWhitelistTeams, _ = base.StringsToInt64s(strings.Split(f.DeleteWhitelistTeams, ","))
 		}
 	default:
 		protectBranch.CanPush = false
@@ -275,6 +283,8 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 	err = git_model.UpdateProtectBranch(ctx, ctx.Repo.Repository, protectBranch, git_model.WhitelistOptions{
 		UserIDs:          whitelistUsers,
 		TeamIDs:          whitelistTeams,
+		DeleteUserIDs:    deleteWhitelistUsers,
+		DeleteTeamIDs:    deleteWhitelistTeams,
 		MergeUserIDs:     mergeWhitelistUsers,
 		MergeTeamIDs:     mergeWhitelistTeams,
 		ApprovalsUserIDs: approvalsWhitelistUsers,

@@ -61,11 +61,40 @@
 								</div>
 							</div>
 						</div>
+						<div class="checkbox-sub-item field">
+							<label>{{.locale.Tr "repo.settings.protect_delete_whitelist_users"}}</label>
+							<div class="ui multiple search selection dropdown">
+								<input type="hidden" name="delete_whitelist_users" value="{{.delete_whitelist_users}}">
+								<div class="default text">{{.locale.Tr "repo.settings.protect_whitelist_search_users"}}</div>
+								<div class="menu">
+									{{range .Users}}
+										<div class="item" data-value="{{.ID}}">
+											{{avatar $.Context . 28 "mini"}}{{template "repo/search_name" .}}
+										</div>
+									{{end}}
+								</div>
+							</div>
+						</div>
 						{{if .Owner.IsOrganization}}
 							<div class="checkbox-sub-item field">
 								<label>{{.locale.Tr "repo.settings.protect_whitelist_teams"}}</label>
 								<div class="ui multiple search selection dropdown">
 									<input type="hidden" name="whitelist_teams" value="{{.whitelist_teams}}">
+									<div class="default text">{{.locale.Tr "repo.settings.protect_whitelist_search_teams"}}</div>
+									<div class="menu">
+										{{range .Teams}}
+											<div class="item" data-value="{{.ID}}">
+												{{svg "octicon-people"}}
+												{{.Name}}
+											</div>
+										{{end}}
+									</div>
+								</div>
+							</div>
+							<div class="checkbox-sub-item field">
+								<label>{{.locale.Tr "repo.settings.protect_delete_whitelist_teams"}}</label>
+								<div class="ui multiple search selection dropdown">
+									<input type="hidden" name="delete_whitelist_teams" value="{{.delete_whitelist_teams}}">
 									<div class="default text">{{.locale.Tr "repo.settings.protect_whitelist_search_teams"}}</div>
 									<div class="menu">
 										{{range .Teams}}
@@ -138,6 +167,7 @@
 									</div>
 								</div>
 							</div>
+							
 						{{end}}
 					</div>
 				</div>

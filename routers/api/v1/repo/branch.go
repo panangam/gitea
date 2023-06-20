@@ -479,6 +479,15 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "GetUserIDsByNames", err)
 		return
 	}
+	deleteWhitelistUsers, err := user_model.GetUserIDsByNames(ctx, form.DeleteWhitelistUsernames, false)
+	if err != nil {
+		if user_model.IsErrUserNotExist(err) {
+			ctx.Error(http.StatusUnprocessableEntity, "User does not exist", err)
+			return
+		}
+		ctx.Error(http.StatusInternalServerError, "GetUserIDsByNames", err)
+		return
+	}
 	mergeWhitelistUsers, err := user_model.GetUserIDsByNames(ctx, form.MergeWhitelistUsernames, false)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
@@ -497,9 +506,18 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "GetUserIDsByNames", err)
 		return
 	}
-	var whitelistTeams, mergeWhitelistTeams, approvalsWhitelistTeams []int64
+	var whitelistTeams, deleteWhitelistTeams, mergeWhitelistTeams, approvalsWhitelistTeams []int64
 	if repo.Owner.IsOrganization() {
 		whitelistTeams, err = organization.GetTeamIDsByNames(repo.OwnerID, form.PushWhitelistTeams, false)
+		if err != nil {
+			if organization.IsErrTeamNotExist(err) {
+				ctx.Error(http.StatusUnprocessableEntity, "Team does not exist", err)
+				return
+			}
+			ctx.Error(http.StatusInternalServerError, "GetTeamIDsByNames", err)
+			return
+		}
+		deleteWhitelistTeams, err = organization.GetTeamIDsByNames(repo.OwnerID, form.DeleteWhitelistTeams, false)
 		if err != nil {
 			if organization.IsErrTeamNotExist(err) {
 				ctx.Error(http.StatusUnprocessableEntity, "Team does not exist", err)
@@ -551,6 +569,8 @@ func CreateBranchProtection(ctx *context.APIContext) {
 	err = git_model.UpdateProtectBranch(ctx, ctx.Repo.Repository, protectBranch, git_model.WhitelistOptions{
 		UserIDs:          whitelistUsers,
 		TeamIDs:          whitelistTeams,
+		DeleteUserIDs:    deleteWhitelistUsers,
+		DeleteTeamIDs:    deleteWhitelistTeams,
 		MergeUserIDs:     mergeWhitelistUsers,
 		MergeTeamIDs:     mergeWhitelistTeams,
 		ApprovalsUserIDs: approvalsWhitelistUsers,
@@ -740,6 +760,20 @@ func EditBranchProtection(ctx *context.APIContext) {
 	} else {
 		whitelistUsers = protectBranch.WhitelistUserIDs
 	}
+	var deleteWhitelistUsers []int64
+	if form.DeleteWhitelistUsernames != nil {
+		deleteWhitelistUsers, err = user_model.GetUserIDsByNames(ctx, form.DeleteWhitelistUsernames, false)
+		if err != nil {
+			if user_model.IsErrUserNotExist(err) {
+				ctx.Error(http.StatusUnprocessableEntity, "User does not exist", err)
+				return
+			}
+			ctx.Error(http.StatusInternalServerError, "GetUserIDsByNames", err)
+			return
+		}
+	} else {
+		deleteWhitelistUsers = protectBranch.DeleteWhitelistUserIDs
+	}
 	var mergeWhitelistUsers []int64
 	if form.MergeWhitelistUsernames != nil {
 		mergeWhitelistUsers, err = user_model.GetUserIDsByNames(ctx, form.MergeWhitelistUsernames, false)
@@ -769,7 +803,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 		approvalsWhitelistUsers = protectBranch.ApprovalsWhitelistUserIDs
 	}
 
-	var whitelistTeams, mergeWhitelistTeams, approvalsWhitelistTeams []int64
+	var whitelistTeams, deleteWhitelistTeams, mergeWhitelistTeams, approvalsWhitelistTeams []int64
 	if repo.Owner.IsOrganization() {
 		if form.PushWhitelistTeams != nil {
 			whitelistTeams, err = organization.GetTeamIDsByNames(repo.OwnerID, form.PushWhitelistTeams, false)
@@ -783,6 +817,19 @@ func EditBranchProtection(ctx *context.APIContext) {
 			}
 		} else {
 			whitelistTeams = protectBranch.WhitelistTeamIDs
+		}
+		if form.DeleteWhitelistTeams != nil {
+			deleteWhitelistTeams, err = organization.GetTeamIDsByNames(repo.OwnerID, form.DeleteWhitelistTeams, false)
+			if err != nil {
+				if organization.IsErrTeamNotExist(err) {
+					ctx.Error(http.StatusUnprocessableEntity, "Team does not exist", err)
+					return
+				}
+				ctx.Error(http.StatusInternalServerError, "GetTeamIDsByNames", err)
+				return
+			}
+		} else {
+			deleteWhitelistTeams = protectBranch.DeleteWhitelistTeamIDs
 		}
 		if form.MergeWhitelistTeams != nil {
 			mergeWhitelistTeams, err = organization.GetTeamIDsByNames(repo.OwnerID, form.MergeWhitelistTeams, false)
@@ -815,6 +862,8 @@ func EditBranchProtection(ctx *context.APIContext) {
 	err = git_model.UpdateProtectBranch(ctx, ctx.Repo.Repository, protectBranch, git_model.WhitelistOptions{
 		UserIDs:          whitelistUsers,
 		TeamIDs:          whitelistTeams,
+		DeleteUserIDs:    deleteWhitelistUsers,
+		DeleteTeamIDs:    deleteWhitelistTeams,
 		MergeUserIDs:     mergeWhitelistUsers,
 		MergeTeamIDs:     mergeWhitelistTeams,
 		ApprovalsUserIDs: approvalsWhitelistUsers,

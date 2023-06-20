@@ -29,6 +29,8 @@ type BranchProtection struct {
 	EnablePushWhitelist           bool     `json:"enable_push_whitelist"`
 	PushWhitelistUsernames        []string `json:"push_whitelist_usernames"`
 	PushWhitelistTeams            []string `json:"push_whitelist_teams"`
+	DeleteWhitelistUsernames      []string `json:"delete_whitelist_usernames"`
+	DeleteWhitelistTeams          []string `json:"delete_whitelist_teams"`
 	PushWhitelistDeployKeys       bool     `json:"push_whitelist_deploy_keys"`
 	EnableMergeWhitelist          bool     `json:"enable_merge_whitelist"`
 	MergeWhitelistUsernames       []string `json:"merge_whitelist_usernames"`
@@ -61,6 +63,8 @@ type CreateBranchProtectionOption struct {
 	EnablePushWhitelist           bool     `json:"enable_push_whitelist"`
 	PushWhitelistUsernames        []string `json:"push_whitelist_usernames"`
 	PushWhitelistTeams            []string `json:"push_whitelist_teams"`
+	DeleteWhitelistUsernames      []string `json:"delete_whitelist_usernames"`
+	DeleteWhitelistTeams          []string `json:"delete_whitelist_teams"`
 	PushWhitelistDeployKeys       bool     `json:"push_whitelist_deploy_keys"`
 	EnableMergeWhitelist          bool     `json:"enable_merge_whitelist"`
 	MergeWhitelistUsernames       []string `json:"merge_whitelist_usernames"`
@@ -86,6 +90,8 @@ type EditBranchProtectionOption struct {
 	EnablePushWhitelist           *bool    `json:"enable_push_whitelist"`
 	PushWhitelistUsernames        []string `json:"push_whitelist_usernames"`
 	PushWhitelistTeams            []string `json:"push_whitelist_teams"`
+	DeleteWhitelistUsernames      []string `json:"delete_whitelist_usernames"`
+	DeleteWhitelistTeams          []string `json:"delete_whitelist_teams"`
 	PushWhitelistDeployKeys       *bool    `json:"push_whitelist_deploy_keys"`
 	EnableMergeWhitelist          *bool    `json:"enable_merge_whitelist"`
 	MergeWhitelistUsernames       []string `json:"merge_whitelist_usernames"`
