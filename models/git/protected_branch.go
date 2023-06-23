@@ -143,6 +143,42 @@ func (protectBranch *ProtectedBranch) CanUserPush(ctx context.Context, user *use
 	return in
 }
 
+// CanUserDelete returns if some user could delete this protected branch
+func (protectBranch *ProtectedBranch) CanUserDelete(ctx context.Context, user *user_model.User) bool {
+	if !protectBranch.CanPush {
+		return false
+	}
+
+	if !protectBranch.EnableWhitelist {
+		if err := protectBranch.LoadRepo(ctx); err != nil {
+			log.Error("LoadRepo: %v", err)
+			return false
+		}
+
+		writeAccess, err := access_model.HasAccessUnit(ctx, user, protectBranch.Repo, unit.TypeCode, perm.AccessModeWrite)
+		if err != nil {
+			log.Error("HasAccessUnit: %v", err)
+			return false
+		}
+		return writeAccess
+	}
+
+	if base.Int64sContains(protectBranch.DeleteWhitelistUserIDs, user.ID) {
+		return true
+	}
+
+	if len(protectBranch.DeleteWhitelistTeamIDs) == 0 {
+		return false
+	}
+
+	in, err := organization.IsUserInTeams(ctx, user.ID, protectBranch.DeleteWhitelistTeamIDs)
+	if err != nil {
+		log.Error("IsUserInTeams: %v", err)
+		return false
+	}
+	return in
+}
+
 // IsUserMergeWhitelisted checks if some user is whitelisted to merge to this branch
 func IsUserMergeWhitelisted(ctx context.Context, protectBranch *ProtectedBranch, userID int64, permissionInRepo access_model.Permission) bool {
 	if !protectBranch.EnableMergeWhitelist {

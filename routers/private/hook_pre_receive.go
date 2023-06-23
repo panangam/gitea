@@ -175,15 +175,28 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 	//
 	// 1. Detect and prevent deletion of the branch
 	if newCommitID == git.EmptySHA {
-		log.Warn("Forbidden: Branch: %s in %-v is protected from deletion", branchName, repo)
-		ctx.JSON(http.StatusForbidden, private.Response{
-			UserMsg: fmt.Sprintf("branch %s is protected from deletion", branchName),
-		})
-		return
+		var canDelete bool
+		user, err := user_model.GetUserByID(ctx, ctx.opts.UserID)
+		if err != nil {
+			log.Error("Unable to GetUserByID for commits from %s to %s in %-v: %v", oldCommitID, newCommitID, repo, err)
+			ctx.JSON(http.StatusInternalServerError, private.Response{
+				Err: fmt.Sprintf("Unable to GetUserByID for commits from %s to %s: %v", oldCommitID, newCommitID, err),
+			})
+			return
+		}
+		canDelete = protectBranch.CanUserDelete(ctx, user)
+
+		if !canDelete {
+			log.Warn("Forbidden: Branch: %s in %-v is protected from deletion", branchName, repo)
+			ctx.JSON(http.StatusForbidden, private.Response{
+				UserMsg: fmt.Sprintf("branch %s is protected from deletion", branchName),
+			})
+			return
+		}
 	}
 
 	// 2. Disallow force pushes to protected branches
-	if git.EmptySHA != oldCommitID {
+	if newCommitID != git.EmptySHA && oldCommitID != git.EmptySHA {
 		output, _, err := git.NewCommand(ctx, "rev-list", "--max-count=1").AddDynamicArguments(oldCommitID, "^"+newCommitID).RunStdString(&git.RunOpts{Dir: repo.RepoPath(), Env: ctx.env})
 		if err != nil {
 			log.Error("Unable to detect force push between: %s and %s in %-v Error: %v", oldCommitID, newCommitID, repo, err)
